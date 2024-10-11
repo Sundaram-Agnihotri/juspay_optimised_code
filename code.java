@@ -54,23 +54,43 @@ class LockingTree {
         return true;
     }
 
+    // boolean upgradeNode(String label, int id) {
+    //     Node targetNode = labelToNode.get(label);
+
+    //     if (targetNode.isLocked || !canUpgrade(targetNode)) {
+    //         return false;
+    //     }
+
+    //     List<Node> lockedDescendants = new ArrayList<>();
+    //     collectLockedDescendants(targetNode, lockedDescendants, id);
+
+    //     // Unlock all locked descendants
+    //     for (Node lockedDescendant : lockedDescendants) {
+    //         unlockNode(lockedDescendant.label, id);
+    //     }
+
+    //     return lockNode(label, id);
+    // }
     boolean upgradeNode(String label, int id) {
-        Node targetNode = labelToNode.get(label);
+    Node targetNode = labelToNode.get(label);
 
-        if (targetNode.isLocked || !canUpgrade(targetNode)) {
-            return false;
-        }
-
-        List<Node> lockedDescendants = new ArrayList<>();
-        collectLockedDescendants(targetNode, lockedDescendants, id);
-
-        // Unlock all locked descendants
-        for (Node lockedDescendant : lockedDescendants) {
-            unlockNode(lockedDescendant.label, id);
-        }
-
-        return lockNode(label, id);
+    if (targetNode.isLocked || !canUpgrade(targetNode)) {
+        return false;
     }
+
+    List<Node> lockedDescendants = new ArrayList<>();
+    collectLockedDescendants(targetNode, lockedDescendants, id);
+
+    if (lockedDescendants.isEmpty()) {
+        return false;
+    }
+
+    for (Node lockedDescendant : lockedDescendants) {
+        unlockNode(lockedDescendant.label, lockedDescendant.userID);
+    }
+
+    return lockNode(label, id);
+}
 
     private boolean canLock(Node node) {
         // Check if any ancestors are locked
