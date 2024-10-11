@@ -1,36 +1,107 @@
+class LockingTree {
+    private Node root;
+    private Map<String, Node> labelToNode;
+    private List<String> outputLog;
+    private Set<Node> lockedNodes; // Track locked nodes
 
-class Solution {
-    public int smallestChair(int[][] times, int targetFriend) {
-        int targetArrival = times[targetFriend][0]; //[a,d]
-        Arrays.sort(times, new Comparator<int[]>(){
-            public int compare(int a[], int b[]){
-                return a[0] - b[0];
-            }
-        });
-        //[lt,chairNo]
-        PriorityQueue<int[]> occupied = new PriorityQueue<>(new Comparator<int[]>(){
-            public int compare(int a[], int b[]){
-                return a[0] - b[0];
-            }
-        });
-        PriorityQueue<Integer> available = new PriorityQueue<>();
-        int chairNo=0;
-        for(int time[] : times){
-            int arrTime = time[0];
-            int leavingTime = time[1];
-            while(!occupied.isEmpty() && occupied.peek()[0] <= arrTime){
-                available.offer(occupied.poll()[1]);
-            }
-            int currentChairNo;
-            if(available.isEmpty()){
-                currentChairNo = chairNo;
-                chairNo++;
-            }else{
-                currentChairNo = available.poll();
-            }
-            if(targetArrival == arrTime) return currentChairNo;
-            occupied.offer(new int[]{leavingTime, currentChairNo});
+    LockingTree(Node treeRoot) {
+        root = treeRoot;
+        labelToNode = new HashMap<>();
+        outputLog = new ArrayList<>();
+        lockedNodes = new HashSet<>();
+    }
+
+    // Other methods remain the same
+
+    boolean lockNode(String label, int id) {
+        Node targetNode = labelToNode.get(label);
+
+        if (targetNode.isLocked || targetNode.descendant != 0 || !canLock(targetNode)) {
+            return false;
         }
-        return -1;
+
+        targetNode.isLocked = true;
+        targetNode.userID = id;
+        lockedNodes.add(targetNode); // Add to locked nodes
+
+        // Update ancestor lock counts
+        Node currentNode = targetNode.parent;
+        while (currentNode != null) {
+            currentNode.descendantLocked++;
+            currentNode = currentNode.parent;
+        }
+
+        return true;
+    }
+
+    boolean unlockNode(String label, int id) {
+        Node targetNode = labelToNode.get(label);
+
+        if (!targetNode.isLocked || targetNode.userID != id) {
+            return false;
+        }
+
+        targetNode.isLocked = false;
+        lockedNodes.remove(targetNode); // Remove from locked nodes
+
+        // Update ancestor lock counts
+        Node currentNode = targetNode.parent;
+        while (currentNode != null) {
+            currentNode.descendantLocked--;
+            currentNode = currentNode.parent;
+        }
+
+        return true;
+    }
+
+    boolean upgradeNode(String label, int id) {
+        Node targetNode = labelToNode.get(label);
+
+        if (targetNode.isLocked || !canUpgrade(targetNode)) {
+            return false;
+        }
+
+        List<Node> lockedDescendants = new ArrayList<>();
+        collectLockedDescendants(targetNode, lockedDescendants, id);
+
+        // Unlock all locked descendants
+        for (Node lockedDescendant : lockedDescendants) {
+            unlockNode(lockedDescendant.label, id);
+        }
+
+        return lockNode(label, id);
+    }
+
+    private boolean canLock(Node node) {
+        // Check if any ancestors are locked
+        Node currentNode = node.parent;
+        while (currentNode != null) {
+            if (lockedNodes.contains(currentNode)) {
+                return false;
+            }
+            currentNode = currentNode.parent;
+        }
+        return true;
+    }
+
+    private boolean canUpgrade(Node node) {
+        // Check if any ancestors are locked and if any descendants are locked
+        Node currentNode = node.parent;
+        while (currentNode != null) {
+            if (lockedNodes.contains(currentNode)) {
+                return false;
+            }
+            currentNode = currentNode.parent;
+        }
+        return node.descendantLocked > 0;
+    }
+
+    private void collectLockedDescendants(Node currentNode, List<Node> lockedDescendants, int id) {
+        if (currentNode.isLocked && currentNode.userID != id) {
+            lockedDescendants.add(currentNode);
+        }
+        for (Node child : currentNode.children) {
+            collectLockedDescendants(child, lockedDescendants, id);
+        }
     }
 }
